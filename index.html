@@ -1,0 +1,614 @@
+<!-- <!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Modern Speech to Text Converter</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap');
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Montserrat', sans-serif;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            width: 90%;
+            max-width: 600px;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 24px;
+            padding: 2rem;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+        }
+
+        h1 {
+            color: #2d3748;
+            text-align: center;
+            font-size: 2rem;
+            margin-bottom: 1.5rem;
+            font-weight: 700;
+        }
+
+        .status {
+            text-align: center;
+            color: #4a5568;
+            font-size: 1rem;
+            margin-bottom: 1.5rem;
+            padding: 0.5rem;
+            border-radius: 12px;
+            background: #f7fafc;
+        }
+
+        #result {
+            background: #fff;
+            border: 2px solid #e2e8f0;
+            border-radius: 16px;
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+            min-height: 200px;
+            max-height: 400px;
+            overflow-y: auto;
+            line-height: 1.6;
+            color: #2d3748;
+            font-size: 1.1rem;
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.06);
+        }
+
+        #result strong {
+            color: #2d3748;
+        }
+
+        #result em {
+            color: #718096;
+        }
+
+        .buttons-container {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            margin-top: 2rem;
+        }
+
+        .button {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            padding: 1rem 2rem;
+            border: none;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            min-width: 180px;
+        }
+
+        #start-btn {
+            background: #48bb78;
+            color: white;
+        }
+
+        #start-btn:hover {
+            background: #38a169;
+            transform: translateY(-2px);
+        }
+
+        #stop-btn {
+            background: #f56565;
+            color: white;
+        }
+
+        #stop-btn:hover {
+            background: #e53e3e;
+            transform: translateY(-2px);
+        }
+
+        .button i {
+            font-size: 1.2rem;
+        }
+
+        @media (max-width: 480px) {
+            .buttons-container {
+                flex-direction: column;
+            }
+            
+            .button {
+                width: 100%;
+            }
+        }
+
+        /* Animation for recording status */
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+
+        .recording {
+            animation: pulse 2s infinite;
+            background: #fed7d7 !important;
+            color: #c53030 !important;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Speech to Text Converter</h1>
+        <div class="status" id="status">Click "Start Recording" to begin</div>
+        <div id="result">Your speech will appear here...</div>
+        <div class="buttons-container">
+            <button class="button" id="start-btn" onclick="startRecording()">
+                <i class="fas fa-microphone"></i>
+                Start Recording
+            </button>
+            <button class="button" id="stop-btn" onclick="stopRecording()">
+                <i class="fas fa-stop-circle"></i>
+                Stop Recording
+            </button>
+        </div>
+    </div>
+
+    <script>
+        window.SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        const recognition = new SpeechRecognition();
+        const resultDiv = document.getElementById('result');
+        const statusDiv = document.getElementById('status');
+        const startBtn = document.getElementById('start-btn');
+        const stopBtn = document.getElementById('stop-btn');
+        
+        let isRecording = false;
+        recognition.continuous = true;
+        recognition.interimResults = true;
+        recognition.lang = 'en-IN';
+
+        let finalTranscript = "";
+
+        recognition.onresult = (event) => {
+            let interimTranscript = "";
+            for (let i = event.resultIndex; i < event.results.length; i++) {
+                if (event.results[i].isFinal) {
+                    finalTranscript += event.results[i][0].transcript + " ";
+                } else {
+                    interimTranscript += event.results[i][0].transcript;
+                }
+            }
+            resultDiv.innerHTML = `<strong>${finalTranscript}</strong>${interimTranscript ? '<br><em>' + interimTranscript + '</em>' : ''}`;
+        };
+
+        recognition.onerror = (event) => {
+            statusDiv.textContent = 'Error: ' + event.error;
+            statusDiv.classList.remove('recording');
+        };
+
+        recognition.onend = () => {
+            if (isRecording) {
+                recognition.start();
+            }
+        };
+
+        function startRecording() {
+            if (!isRecording) {
+                finalTranscript = "";
+                resultDiv.innerHTML = "";
+                recognition.start();
+                isRecording = true;
+                startBtn.style.display = 'none';
+                stopBtn.style.display = 'flex';
+                statusDiv.textContent = '🎤 Listening... Speak now!';
+                statusDiv.classList.add('recording');
+            }
+        }
+
+        function stopRecording() {
+            recognition.stop();
+            isRecording = false;
+            startBtn.style.display = 'flex';
+            stopBtn.style.display = 'none';
+            statusDiv.textContent = 'Recording stopped.';
+            statusDiv.classList.remove('recording');
+        }
+
+        // Initialize button display
+        stopBtn.style.display = 'none';
+    </script>
+</body>
+</html> -->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Modern Speech to Text Converter</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap');
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Montserrat', sans-serif;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            width: 90%;
+            max-width: 600px;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 24px;
+            padding: 2rem;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+        }
+
+        h1 {
+            color: #2d3748;
+            text-align: center;
+            font-size: 2rem;
+            margin-bottom: 1.5rem;
+            font-weight: 700;
+        }
+
+        .status {
+            text-align: center;
+            color: #4a5568;
+            font-size: 1rem;
+            margin-bottom: 1.5rem;
+            padding: 0.5rem;
+            border-radius: 12px;
+            background: #f7fafc;
+        }
+
+        #result {
+            background: #fff;
+            border: 2px solid #e2e8f0;
+            border-radius: 16px;
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+            min-height: 200px;
+            max-height: 400px;
+            overflow-y: auto;
+            line-height: 1.6;
+            color: #2d3748;
+            font-size: 1.1rem;
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.06);
+        }
+
+        #result strong {
+            color: #2d3748;
+        }
+
+        #result em {
+            color: #718096;
+        }
+
+        .buttons-container {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            margin-top: 2rem;
+        }
+
+        .button {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            padding: 1rem 2rem;
+            border: none;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            min-width: 180px;
+        }
+
+        #start-btn {
+            background: #48bb78;
+            color: white;
+        }
+
+        #start-btn:hover {
+            background: #38a169;
+            transform: translateY(-2px);
+        }
+
+        #stop-btn {
+            background: #f56565;
+            color: white;
+        }
+
+        #stop-btn:hover {
+            background: #e53e3e;
+            transform: translateY(-2px);
+        }
+
+        .button i {
+            font-size: 1.2rem;
+        }
+
+        .controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 1rem;
+        }
+
+        .language-select {
+            padding: 0.5rem;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+            background: white;
+            font-family: 'Montserrat', sans-serif;
+        }
+
+        @media (max-width: 480px) {
+            .buttons-container {
+                flex-direction: column;
+            }
+            
+            .button {
+                width: 100%;
+            }
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+
+        .recording {
+            animation: pulse 2s infinite;
+            background: #fed7d7 !important;
+            color: #c53030 !important;
+        }
+
+        #confidence-meter {
+            height: 4px;
+            background: #e2e8f0;
+            border-radius: 2px;
+            margin-top: 0.5rem;
+            overflow: hidden;
+        }
+
+        #confidence-meter div {
+            height: 100%;
+            background: #48bb78;
+            transition: width 0.3s ease;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Speech to Text Converter</h1>
+        <div class="status" id="status">Click "Start Recording" to begin</div>
+        <div id="result">Your speech will appear here...</div>
+        <div id="confidence-meter">
+            <div></div>
+        </div>
+        <div class="controls">
+            <select id="language-select" class="language-select" onchange="changeLanguage()">
+                <option value="en-US">English (US)</option>
+                <option value="en-GB">English (UK)</option>
+                <option value="en-AU">English (AU)</option>
+                <option value="es-ES">Spanish</option>
+                <option value="fr-FR">French</option>
+                <option value="de-DE">German</option>
+                <option value="it-IT">Italian</option>
+                <option value="pt-BR">Portuguese</option>
+            </select>
+        </div>
+        <div class="buttons-container">
+            <button class="button" id="start-btn" onclick="startRecording()">
+                <i class="fas fa-microphone"></i>
+                Start Recording
+            </button>
+            <button class="button" id="stop-btn" onclick="stopRecording()">
+                <i class="fas fa-stop-circle"></i>
+                Stop Recording
+            </button>
+        </div>
+    </div>
+
+    <script>
+        class SpeechToTextConverter {
+            constructor() {
+                this.recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+                this.resultDiv = document.getElementById('result');
+                this.statusDiv = document.getElementById('status');
+                this.startBtn = document.getElementById('start-btn');
+                this.stopBtn = document.getElementById('stop-btn');
+                this.confidenceMeter = document.querySelector('#confidence-meter div');
+                this.isRecording = false;
+                this.finalTranscript = "";
+                this.lastRecognitionTime = Date.now();
+                this.silenceTimeout = null;
+                this.setupRecognition();
+            }
+
+            setupRecognition() {
+                this.recognition.continuous = true;
+                this.recognition.interimResults = true;
+                this.recognition.maxAlternatives = 3;
+                this.recognition.lang = document.getElementById('language-select').value;
+
+                // Improved result handling with confidence scoring
+                this.recognition.onresult = (event) => {
+                    let interimTranscript = "";
+                    let highestConfidence = 0;
+
+                    for (let i = event.resultIndex; i < event.results.length; i++) {
+                        const result = event.results[i];
+                        if (result.isFinal) {
+                            // Get the most confident result
+                            const alternatives = Array.from(result);
+                            const bestResult = alternatives.reduce((prev, current) => 
+                                current.confidence > prev.confidence ? current : prev
+                            );
+                            
+                            this.finalTranscript += this.capitalizeFirstLetter(bestResult.transcript) + ". ";
+                            highestConfidence = Math.max(highestConfidence, bestResult.confidence);
+                        } else {
+                            interimTranscript += result[0].transcript;
+                        }
+                    }
+
+                    // Update confidence meter
+                    this.updateConfidenceMeter(highestConfidence);
+
+                    // Format and display the results
+                    this.resultDiv.innerHTML = this.formatTranscript(this.finalTranscript, interimTranscript);
+                    this.lastRecognitionTime = Date.now();
+                };
+
+                // Enhanced error handling
+                this.recognition.onerror = (event) => {
+                    const errorMessages = {
+                        'no-speech': 'No speech was detected. Please try again.',
+                        'audio-capture': 'No microphone was found. Ensure it is plugged in and allowed.',
+                        'not-allowed': 'Microphone permission was denied. Please allow access.',
+                        'network': 'Network error occurred. Please check your connection.',
+                        'aborted': 'Recording was aborted.',
+                        'service-not-allowed': 'Speech recognition service is not allowed.'
+                    };
+
+                    this.statusDiv.textContent = errorMessages[event.error] || `Error: ${event.error}`;
+                    this.statusDiv.classList.remove('recording');
+                    this.handleError(event.error);
+                };
+
+                // Automatic restart on end if still recording
+                this.recognition.onend = () => {
+                    if (this.isRecording) {
+                        // Check for silence
+                        if (Date.now() - this.lastRecognitionTime > 5000) {
+                            this.silenceTimeout = setTimeout(() => {
+                                this.statusDiv.textContent = 'Silent for too long. Recording restarted.';
+                                this.restartRecognition();
+                            }, 1000);
+                        } else {
+                            this.recognition.start();
+                        }
+                    }
+                };
+            }
+
+            capitalizeFirstLetter(string) {
+                return string.charAt(0).toUpperCase() + string.slice(1);
+            }
+
+            formatTranscript(final, interim) {
+                // Add punctuation and formatting
+                let formattedFinal = final.replace(/\s+/g, ' ').trim();
+                if (formattedFinal && !formattedFinal.endsWith('.')) {
+                    formattedFinal += '.';
+                }
+
+                return `<strong>${formattedFinal}</strong>${
+                    interim ? '<br><em>' + interim + '</em>' : ''
+                }`;
+            }
+
+            updateConfidenceMeter(confidence) {
+                const percentage = (confidence * 100) || 0;
+                this.confidenceMeter.style.width = `${percentage}%`;
+                this.confidenceMeter.style.background = 
+                    percentage > 80 ? '#48bb78' :
+                    percentage > 60 ? '#ecc94b' : '#f56565';
+            }
+
+            handleError(error) {
+                this.stopRecording();
+                if (error === 'network') {
+                    setTimeout(() => {
+                        if (this.isRecording) {
+                            this.restartRecognition();
+                        }
+                    }, 3000);
+                }
+            }
+
+            restartRecognition() {
+                try {
+                    this.recognition.stop();
+                } catch (e) {}
+                setTimeout(() => {
+                    this.recognition.start();
+                }, 500);
+            }
+
+            startRecording() {
+                if (!this.isRecording) {
+                    this.finalTranscript = "";
+                    this.resultDiv.innerHTML = "";
+                    this.isRecording = true;
+                    this.startBtn.style.display = 'none';
+                    this.stopBtn.style.display = 'flex';
+                    this.statusDiv.textContent = '🎤 Listening... Speak now!';
+                    this.statusDiv.classList.add('recording');
+                    this.recognition.start();
+                }
+            }
+
+            stopRecording() {
+                this.recognition.stop();
+                this.isRecording = false;
+                this.startBtn.style.display = 'flex';
+                this.stopBtn.style.display = 'none';
+                this.statusDiv.textContent = 'Recording stopped.';
+                this.statusDiv.classList.remove('recording');
+                clearTimeout(this.silenceTimeout);
+            }
+        }
+
+        // Initialize the converter
+        const converter = new SpeechToTextConverter();
+        
+        // Initialize button display
+        document.getElementById('stop-btn').style.display = 'none';
+
+        // Global functions for HTML buttons
+        function startRecording() {
+            converter.startRecording();
+        }
+
+        function stopRecording() {
+            converter.stopRecording();
+        }
+
+        function changeLanguage() {
+            const wasRecording = converter.isRecording;
+            if (wasRecording) {
+                converter.stopRecording();
+            }
+            converter.recognition.lang = document.getElementById('language-select').value;
+            if (wasRecording) {
+                setTimeout(() => converter.startRecording(), 500);
+            }
+        }
+    </script>
+</body>
+</html>
